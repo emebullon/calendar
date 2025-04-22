@@ -1,3 +1,5 @@
+import { getMatches } from './api.js';
+
 /*********************************
  * Variables globales para los filtros
  *********************************/
@@ -44,12 +46,8 @@ async function loadMatchesFromFEB() {
         const currentYear = today.getFullYear().toString();
         selectedDate = `${currentDay}-${currentMonth}-${currentYear}`;
 
-        // Obtener los partidos desde la API de la FEB
-        const response = await fetch('/.netlify/functions/feb-api?endpoint=/matches');
-        if (!response.ok) {
-            throw new Error('Error al obtener los partidos de la FEB');
-        }
-        const matches = await response.json();
+        // Obtener los partidos desde la API
+        const matches = await getMatches();
         
         // Limpiar los sets
         matchDatesSet.clear();
@@ -94,7 +92,6 @@ async function loadMatchesFromFEB() {
         applyAllFilters();
     } catch (error) {
         console.error('Error al cargar los partidos:', error);
-        // Mostrar un mensaje de error al usuario
         const matchesList = document.getElementById('matchesList');
         matchesList.innerHTML = '<div class="error-message">Error al cargar los partidos. Por favor, intenta más tarde.</div>';
     }
