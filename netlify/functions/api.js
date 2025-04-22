@@ -1,74 +1,95 @@
-// Función para obtener el token JWT
-async function getAuthToken() {
-    try {
-        const formData = new URLSearchParams();
-        formData.append('grant_type', 'client_credentials');
-        formData.append('client_id', CONFIG.APP_ID);
-        formData.append('client_secret', CONFIG.APP_SECRET);
+const fetch = require('node-fetch');
 
-        const response = await fetch(CONFIG.IDENTITY_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: formData
-        });
+// Configuración de la API
+const CONFIG = {
+    API_BASE_URL: 'https://intrafeb.feb.es/livestats.api/api/v1',
+    IDENTITY_URL: 'https://intrafeb.feb.es/identity/connect/token',
+    APP_ID: process.env.FEB_APP_ID,
+    APP_SECRET: process.env.FEB_APP_SECRET
+};
 
-        if (!response.ok) {
-            throw new Error('Error en la autenticación');
-        }
+// Función para obtener el token
+async function getToken() {
+    const formData = new URLSearchParams();
+    formData.append('grant_type', 'client_credentials');
+    formData.append('client_id', CONFIG.APP_ID);
+    formData.append('client_secret', CONFIG.APP_SECRET);
 
-        const data = await response.json();
-        return data.access_token;
-    } catch (error) {
-        console.error('Error al obtener el token:', error);
-        throw error;
+    const response = await fetch(CONFIG.IDENTITY_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: formData
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error_description || 'Error al obtener el token');
     }
+
+    const data = await response.json();
+    return data.access_token;
 }
 
-// Función para hacer llamadas a la API
-async function callApi(endpoint) {
+exports.handler = async function(event, context) {
+    // Configurar headers CORS
+    const headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Content-Type': 'application/json'
+    };
+
+    // Manejar preflight requests
+    if (event.httpMethod === 'OPTIONS') {
+        return {
+            statusCode: 204,
+            headers,
+            body: ''
+        };
+    }
+
     try {
-        const token = await getAuthToken();
-        const response = await fetch(`${CONFIG.API_BASE_URL}${endpoint}`, {
+        // Obtener el token
+        const token = await getToken();
+
+        // Hacer la petición a la API de FEB
+        const response = await fetch(`${CONFIG.API_BASE_URL}/Overview/List`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
             }
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            throw new Error('Error en la llamada a la API');
+            return {
+                statusCode: response.status,
+                headers,
+                body: JSON.stringify({
+                    error: 'Error en la respuesta de la API',
+                    details: data
+                })
+            };
         }
 
-        return await response.json();
-    } catch (error) {
-        console.error('Error en la llamada a la API:', error);
-        throw error;
-    }
-}
+        return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify(data)
+        };
 
-// Función para obtener los partidos
-async function getMatches() {
-    try {
-        // Obtener la lista de partidos desde la API
-        const matches = await callApi('/Overview/List');
-        return matches.map(match => ({
-            starttime: `${match.date} - ${match.time}`,
-            day: match.date.split('-')[0],
-            month: match.date.split('-')[1],
-            year: match.date.split('-')[2],
-            time: match.time,
-            competition: match.competition,
-            status: match.status,
-            teamAName: match.localTeam.name,
-            teamALogo: match.localTeam.logo || "https://via.placeholder.com/50",
-            teamAPts: match.localTeam.score,
-            teamBName: match.visitorTeam.name,
-            teamBLogo: match.visitorTeam.logo || "https://via.placeholder.com/50",
-            teamBPts: match.visitorTeam.score
-        }));
     } catch (error) {
-        console.error('Error al obtener los partidos:', error);
-        return [];
+        console.error('Error:', error);
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({
+                error: 'Error al procesar la petición',
+                details: error.message
+            })
+        };
     }
-} 
+}; 

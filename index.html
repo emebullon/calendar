@@ -1,20 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Prueba API FEB</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario FEB</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Prueba API FEB</h1>
-  <form id="auth-form">
-    <button type="submit">Obtener Token</button>
-  </form>
-  <div id="result">
-    <h2>Resultados:</h2>
-    <pre id="output"></pre>
-  </div>
-  <script src="script.js"></script>
+    <div class="container">
+        <header>
+            <h1>Calendario de Partidos</h1>
+            <div id="loading" class="loading">Cargando partidos...</div>
+        </header>
+        
+        <main id="matches-container" class="matches-grid">
+            <!-- Los partidos se cargarán aquí dinámicamente -->
+        </main>
+
+        <template id="match-template">
+            <article class="match-card">
+                <header class="match-header">
+                    <time class="match-date"></time>
+                    <span class="match-status"></span>
+                </header>
+                <div class="match-competition"></div>
+                <div class="match-teams">
+                    <div class="team team-home">
+                        <img class="team-logo" alt="">
+                        <span class="team-name"></span>
+                        <span class="team-score"></span>
+                    </div>
+                    <div class="team team-away">
+                        <img class="team-logo" alt="">
+                        <span class="team-name"></span>
+                        <span class="team-score"></span>
+                    </div>
+                </div>
+            </article>
+        </template>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
 </body>
-</html>
+</html> 

@@ -1,7 +1,8 @@
 {
-  "name": "calendario-api",
+  "name": "calendario-feb",
   "version": "1.0.0",
-  "description": "Proxy para la API de la FEB",
+  "description": "Calendario de partidos FEB",
+  "main": "index.html",
   "dependencies": {
     "node-fetch": "^2.6.1"
   }
