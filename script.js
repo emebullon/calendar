@@ -1,19 +1,20 @@
-// URL y credenciales
-const TOKEN_URL = 'https://intrafeb.feb.es/identity.api/connect/token';
-const API_BASE_URL = 'https://intrafeb.feb.es/livestats.api/api/v1/';
+// Constantes de configuración
+const TOKEN_URL = 'https://cors-anywhere.herokuapp.com/https://intrafeb.feb.es/identity.api/connect/token';
+const API_BASE_URL = 'https://cors-anywhere.herokuapp.com/https://intrafeb.feb.es/livestats.api/api/v1/';
 const CLIENT_ID = 'livestats-miguelbullon';
 const CLIENT_SECRET = 'Rk4wnoJqDI5ZyNFYSZS2cLMFLwSpL/RJyEDkVZEw9SXU=';
 
+// Evento para manejar el formulario
 document.getElementById('auth-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
+  event.preventDefault(); // Evita que la página se recargue al enviar el formulario
   
   try {
     // Obtener el token JWT
     const token = await getToken();
     displayOutput('Token obtenido:\n' + token);
 
-    // Opcional: Prueba de un endpoint de ejemplo
-    const data = await fetchData('some-endpoint', token);
+    // Opcional: Probar un endpoint de la API
+    const data = await fetchData('some-endpoint', token); // Reemplaza 'some-endpoint' con el endpoint deseado
     displayOutput('Datos de la API:\n' + JSON.stringify(data, null, 2));
   } catch (error) {
     displayOutput('Error:\n' + error.message);
@@ -44,7 +45,7 @@ async function getToken() {
 
 // Función para hacer una petición a la API
 async function fetchData(endpoint, token) {
-  const response = await fetch(API_BASE_URL + endpoint, {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -58,7 +59,7 @@ async function fetchData(endpoint, token) {
   return await response.json();
 }
 
-// Mostrar resultados en pantalla
+// Función para mostrar los resultados en la página
 function displayOutput(message) {
   document.getElementById('output').textContent = message;
 }
