@@ -58,7 +58,27 @@ async function fetchData(endpoint, token) {
 
   return await response.json();
 }
+async function getToken() {
+  const response = await fetch(TOKEN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+    }),
+  });
 
+  if (!response.ok) {
+    const errorDetails = await response.text();
+    throw new Error(`Error al obtener el token: ${response.status} ${response.statusText}\nDetalles: ${errorDetails}`);
+  }
+
+  const data = await response.json();
+  return data.access_token;
+}
 // Función para mostrar los resultados en la página
 function displayOutput(message) {
   document.getElementById('output').textContent = message;
