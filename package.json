@@ -4,7 +4,7 @@
   "description": "Calendario de partidos de la FEB",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "netlify dev"
   },
   "dependencies": {
     "node-fetch": "^2.6.1"

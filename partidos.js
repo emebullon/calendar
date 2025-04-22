@@ -49,14 +49,14 @@ async function loadMatchesFromFEB() {
         if (!response.ok) {
             throw new Error('Error al obtener los partidos de la FEB');
         }
-        const data = await response.json();
+        const matches = await response.json();
         
         // Limpiar los sets
         matchDatesSet.clear();
         competitionSet.clear();
 
         // Procesar los partidos
-        data.forEach(match => {
+        matches.forEach(match => {
             if (match.competition) competitionSet.add(match.competition);
             const dateStr = `${match.day}-${match.month}-${match.year}`;
             matchDatesSet.add(dateStr);
@@ -67,7 +67,7 @@ async function loadMatchesFromFEB() {
         generateCompetitionFilters(Array.from(competitionSet));
 
         // Ordenar los partidos por hora
-        data.sort((a, b) => {
+        matches.sort((a, b) => {
             const [hourA, minuteA] = a.time.split(':').map(Number);
             const [hourB, minuteB] = b.time.split(':').map(Number);
             return hourA !== hourB ? hourA - hourB : minuteA - minuteB;
@@ -78,7 +78,7 @@ async function loadMatchesFromFEB() {
         matchesList.innerHTML = '';
 
         // Crear todas las tarjetas pero inicialmente ocultas
-        data.forEach(match => {
+        matches.forEach(match => {
             const card = createMatchCard(match);
             card.style.display = 'none'; // Ocultar todas las tarjetas inicialmente
             matchesList.appendChild(card);
