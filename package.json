@@ -1,8 +1,11 @@
 {
-  "name": "calendario-feb",
+  "name": "feb-calendar",
   "version": "1.0.0",
-  "description": "Calendario de partidos FEB",
-  "main": "index.html",
+  "description": "Calendario de partidos de la FEB",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "dependencies": {
     "node-fetch": "^2.6.1"
   }

@@ -33,9 +33,9 @@ async function fetchMatchFiles() {
 }
 
 /*********************************
- * 2) CARGAR PARTIDOS DESDE LA API
+ * 2) CARGAR PARTIDOS DESDE LA API DE LA FEB
  *********************************/
-async function loadMatchesFromRepo() {
+async function loadMatchesFromFEB() {
     try {
         // Obtener la fecha actual en formato DD-MM-YYYY
         const today = new Date();
@@ -44,15 +44,19 @@ async function loadMatchesFromRepo() {
         const currentYear = today.getFullYear().toString();
         selectedDate = `${currentDay}-${currentMonth}-${currentYear}`;
 
-        // Obtener los partidos desde la API
-        const matches = await getMatches();
+        // Obtener los partidos desde la API de la FEB
+        const response = await fetch('/.netlify/functions/feb-api?endpoint=/matches');
+        if (!response.ok) {
+            throw new Error('Error al obtener los partidos de la FEB');
+        }
+        const data = await response.json();
         
         // Limpiar los sets
         matchDatesSet.clear();
         competitionSet.clear();
 
         // Procesar los partidos
-        matches.forEach(match => {
+        data.forEach(match => {
             if (match.competition) competitionSet.add(match.competition);
             const dateStr = `${match.day}-${match.month}-${match.year}`;
             matchDatesSet.add(dateStr);
@@ -63,7 +67,7 @@ async function loadMatchesFromRepo() {
         generateCompetitionFilters(Array.from(competitionSet));
 
         // Ordenar los partidos por hora
-        matches.sort((a, b) => {
+        data.sort((a, b) => {
             const [hourA, minuteA] = a.time.split(':').map(Number);
             const [hourB, minuteB] = b.time.split(':').map(Number);
             return hourA !== hourB ? hourA - hourB : minuteA - minuteB;
@@ -74,7 +78,7 @@ async function loadMatchesFromRepo() {
         matchesList.innerHTML = '';
 
         // Crear todas las tarjetas pero inicialmente ocultas
-        matches.forEach(match => {
+        data.forEach(match => {
             const card = createMatchCard(match);
             card.style.display = 'none'; // Ocultar todas las tarjetas inicialmente
             matchesList.appendChild(card);
@@ -561,6 +565,9 @@ function markDatesWithMatches() {
  * 15) INICIAR CARGA DE PARTIDOS
  *********************************/
 const matchesList = document.getElementById("matchesList");
-loadMatchesFromRepo();
+document.addEventListener('DOMContentLoaded', () => {
+    loadMatchesFromFEB(); // Cambiar a la nueva función
+    generateDays2025();
+});
 
 console.log("Si subes nuevos JSON al repositorio, se cargarán automáticamente al recargar la página."); 
