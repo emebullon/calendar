@@ -2,7 +2,7 @@
 const API_CONFIG = {
     baseUrl: '/.netlify/functions',
     endpoints: {
-        matches: '/feb-api'
+        match: (id) => `/feb-api?id=${id}`
     }
 };
 

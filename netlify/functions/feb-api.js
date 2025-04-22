@@ -7,7 +7,7 @@ const FEB_CREDENTIALS = {
 };
 
 // URL base de la API
-const FEB_API_BASE = 'https://intrafeb.feb.es/livestats.api/api/v1';
+const FEB_API_BASE = 'https://intrafeb.feb.es/livestats.api';
 
 // Función para obtener el token JWT
 async function getFEBToken() {
@@ -74,23 +74,27 @@ async function callFEBAPI(endpoint, token) {
 }
 
 // Función para transformar los datos de la API al formato esperado
-function transformMatchData(apiData) {
-  // Asumiendo que apiData es un array de partidos de la API de la FEB
-  return apiData.map(game => ({
-    starttime: game.startTime || "00-00-0000 - 00:00",
-    day: game.startTime ? game.startTime.split('-')[0] : "00",
-    month: game.startTime ? game.startTime.split('-')[1] : "00",
-    year: game.startTime ? game.startTime.split('-')[2].split(' ')[0] : "0000",
-    time: game.startTime ? game.startTime.split(' - ')[1] : "00:00",
-    competition: game.competition || "",
-    status: game.status || "Pendiente",
-    teamAName: game.teamA?.name || "Equipo A",
-    teamALogo: game.teamA?.logo || "https://via.placeholder.com/50",
-    teamAPts: game.teamA?.score || 0,
-    teamBName: game.teamB?.name || "Equipo B",
-    teamBLogo: game.teamB?.logo || "https://via.placeholder.com/50",
-    teamBPts: game.teamB?.score || 0
-  }));
+function transformMatchData(match) {
+  const header = match.HEADER || {};
+  const teams = header.TEAM || [];
+  const teamA = teams[0] || {};
+  const teamB = teams[1] || {};
+
+  return {
+    starttime: header.starttime || "00-00-0000 - 00:00",
+    day: header.starttime ? header.starttime.split('-')[0] : "00",
+    month: header.starttime ? header.starttime.split('-')[1] : "00",
+    year: header.starttime ? header.starttime.split('-')[2].split(' ')[0] : "0000",
+    time: header.time || "00:00",
+    competition: header.competition || "",
+    status: header.time || "Pendiente",
+    teamAName: teamA.name || "Equipo A",
+    teamALogo: teamA.logo || "https://via.placeholder.com/50",
+    teamAPts: parseInt(teamA.pts) || 0,
+    teamBName: teamB.name || "Equipo B",
+    teamBLogo: teamB.logo || "https://via.placeholder.com/50",
+    teamBPts: parseInt(teamB.pts) || 0
+  };
 }
 
 // Handler principal de la función
@@ -110,37 +114,38 @@ exports.handler = async function(event, context) {
     // Obtener el token
     const token = await getFEBToken();
     
-    // Hacer la llamada a la API para obtener los partidos
-    const apiData = await callFEBAPI('/matches', token);
+    // Obtener el ID del partido si se proporciona
+    const matchId = event.queryStringParameters?.id;
     
-    // Transformar los datos al formato esperado
-    const matches = Array.isArray(apiData) ? apiData : [];
-    const transformedData = matches.map(match => ({
-      starttime: match.date || "00-00-0000 - 00:00",
-      day: match.date ? match.date.split('-')[0] : "00",
-      month: match.date ? match.date.split('-')[1] : "00",
-      year: match.date ? match.date.split('-')[2].split(' ')[0] : "0000",
-      time: match.time || "00:00",
-      competition: match.competition || "",
-      status: match.status || "Pendiente",
-      teamAName: match.homeTeam?.name || "Equipo A",
-      teamALogo: match.homeTeam?.logo || "https://via.placeholder.com/50",
-      teamAPts: match.homeTeam?.score || 0,
-      teamBName: match.awayTeam?.name || "Equipo B",
-      teamBLogo: match.awayTeam?.logo || "https://via.placeholder.com/50",
-      teamBPts: match.awayTeam?.score || 0
-    }));
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify(transformedData),
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
-      }
-    };
+    if (matchId) {
+      // Si tenemos un ID, obtener un partido específico
+      const matchData = await callFEBAPI(`/api/v1/FullMatch/${matchId}`, token);
+      const transformedData = transformMatchData(matchData);
+      return {
+        statusCode: 200,
+        body: JSON.stringify(transformedData),
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+        }
+      };
+    } else {
+      // Si no tenemos ID, devolver error
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ 
+          error: "Se requiere un ID de partido"
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+        }
+      };
+    }
   } catch (error) {
     console.error('Handler error:', error);
     return {

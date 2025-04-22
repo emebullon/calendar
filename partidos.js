@@ -1,4 +1,4 @@
-import { getMatches } from './api.js';
+import { getMatch } from './api.js';
 
 /*********************************
  * Variables globales para los filtros
@@ -46,41 +46,33 @@ async function loadMatchesFromFEB() {
         const currentYear = today.getFullYear().toString();
         selectedDate = `${currentDay}-${currentMonth}-${currentYear}`;
 
-        // Obtener los partidos desde la API
-        const matches = await getMatches();
+        // Por ahora, usaremos un ID de prueba
+        // TODO: Implementar la obtención de la lista de IDs de partidos
+        const testMatchId = '12345'; // Reemplazar con un ID real
+        
+        // Obtener el partido desde la API
+        const match = await getMatch(testMatchId);
         
         // Limpiar los sets
         matchDatesSet.clear();
         competitionSet.clear();
 
-        // Procesar los partidos
-        matches.forEach(match => {
-            if (match.competition) competitionSet.add(match.competition);
-            const dateStr = `${match.day}-${match.month}-${match.year}`;
-            matchDatesSet.add(dateStr);
-        });
+        // Procesar el partido
+        if (match.competition) competitionSet.add(match.competition);
+        const dateStr = `${match.day}-${match.month}-${match.year}`;
+        matchDatesSet.add(dateStr);
 
         // Generar pestañas y filtros de competiciones
         generateCompetitionTabs(Array.from(competitionSet));
         generateCompetitionFilters(Array.from(competitionSet));
 
-        // Ordenar los partidos por hora
-        matches.sort((a, b) => {
-            const [hourA, minuteA] = a.time.split(':').map(Number);
-            const [hourB, minuteB] = b.time.split(':').map(Number);
-            return hourA !== hourB ? hourA - hourB : minuteA - minuteB;
-        });
-
         // Limpiar la lista de partidos existente
         const matchesList = document.getElementById('matchesList');
         matchesList.innerHTML = '';
 
-        // Crear todas las tarjetas pero inicialmente ocultas
-        matches.forEach(match => {
-            const card = createMatchCard(match);
-            card.style.display = 'none'; // Ocultar todas las tarjetas inicialmente
-            matchesList.appendChild(card);
-        });
+        // Crear la tarjeta del partido
+        const card = createMatchCard(match);
+        matchesList.appendChild(card);
 
         // Marcar en el calendario los días que tienen partidos
         markDatesWithMatches();
