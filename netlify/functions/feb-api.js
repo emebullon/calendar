@@ -12,6 +12,11 @@ const FEB_API_BASE = 'https://intrafeb.feb.es/livestats.api/api/v1';
 // Función para obtener el token JWT
 async function getFEBToken() {
   try {
+    console.log('Intentando obtener token con credenciales:', {
+      client_id: FEB_CREDENTIALS.app_id,
+      // No logueamos el secret por seguridad
+    });
+
     const response = await fetch('https://intrafeb.feb.es/identity.api/connect/token', {
       method: 'POST',
       headers: {
@@ -22,15 +27,17 @@ async function getFEBToken() {
         client_id: FEB_CREDENTIALS.app_id,
         client_secret: FEB_CREDENTIALS.app_secret,
         scope: 'livestats.api'
-      })
+      }).toString()
     });
 
     if (!response.ok) {
-      console.error('Error response:', await response.text());
-      throw new Error('Error al obtener el token de la FEB');
+      const errorText = await response.text();
+      console.error('Error response from token endpoint:', errorText);
+      throw new Error(`Error al obtener el token: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log('Token obtenido correctamente');
     return data.access_token;
   } catch (error) {
     console.error('Error getting token:', error);
@@ -41,8 +48,10 @@ async function getFEBToken() {
 // Función para hacer llamadas a la API de la FEB
 async function callFEBAPI(endpoint, token) {
   try {
-    console.log('Calling FEB API:', `${FEB_API_BASE}${endpoint}`);
-    const response = await fetch(`${FEB_API_BASE}${endpoint}`, {
+    const url = `${FEB_API_BASE}${endpoint}`;
+    console.log('Calling FEB API:', url);
+    
+    const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json'
@@ -50,11 +59,13 @@ async function callFEBAPI(endpoint, token) {
     });
 
     if (!response.ok) {
-      console.error('Error response:', await response.text());
-      throw new Error(`Error en la llamada a la API: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Error response from API:', errorText);
+      throw new Error(`Error en la llamada a la API: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log('API response received:', data);
     return data;
   } catch (error) {
     console.error('Error calling API:', error);
@@ -84,29 +95,50 @@ function transformMatchData(apiData) {
 
 // Handler principal de la función
 exports.handler = async function(event, context) {
+  console.log('Function called with event:', {
+    httpMethod: event.httpMethod,
+    path: event.path,
+    queryStringParameters: event.queryStringParameters
+  });
+
   try {
-    console.log('Function called with event:', event);
-    
+    // Verificar que tenemos las credenciales
+    if (!FEB_CREDENTIALS.app_id || !FEB_CREDENTIALS.app_secret) {
+      throw new Error('Faltan las credenciales de la API de la FEB');
+    }
+
     // Obtener el token
     const token = await getFEBToken();
-    console.log('Token obtained successfully');
     
-    // Obtener el endpoint de la query string
-    const endpoint = event.queryStringParameters?.endpoint || '/matches';
-    
-    // Hacer la llamada a la API
-    const apiData = await callFEBAPI(endpoint, token);
-    console.log('API data received:', apiData);
+    // Hacer la llamada a la API para obtener los partidos
+    const apiData = await callFEBAPI('/matches', token);
     
     // Transformar los datos al formato esperado
-    const transformedData = transformMatchData(apiData);
-    
+    const matches = Array.isArray(apiData) ? apiData : [];
+    const transformedData = matches.map(match => ({
+      starttime: match.date || "00-00-0000 - 00:00",
+      day: match.date ? match.date.split('-')[0] : "00",
+      month: match.date ? match.date.split('-')[1] : "00",
+      year: match.date ? match.date.split('-')[2].split(' ')[0] : "0000",
+      time: match.time || "00:00",
+      competition: match.competition || "",
+      status: match.status || "Pendiente",
+      teamAName: match.homeTeam?.name || "Equipo A",
+      teamALogo: match.homeTeam?.logo || "https://via.placeholder.com/50",
+      teamAPts: match.homeTeam?.score || 0,
+      teamBName: match.awayTeam?.name || "Equipo B",
+      teamBLogo: match.awayTeam?.logo || "https://via.placeholder.com/50",
+      teamBPts: match.awayTeam?.score || 0
+    }));
+
     return {
       statusCode: 200,
       body: JSON.stringify(transformedData),
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
       }
     };
   } catch (error) {
@@ -119,7 +151,9 @@ exports.handler = async function(event, context) {
       }),
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
       }
     };
   }
